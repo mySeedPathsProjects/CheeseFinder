@@ -13,7 +13,6 @@ namespace CheeseFinder
             CheeseNibbler CheeseGame = new CheeseNibbler();
             CheeseGame.PlayGame();
             
-            Console.ReadKey();
         }
     }
 
@@ -124,7 +123,7 @@ namespace CheeseFinder
             //initialize the Mouse and randomly place its Position (Point) on the Grid
             Mouse = new Mouse();
             this.Mouse.Position = this.Grid[this.RNG.Next(10), this.RNG.Next(10)];
-  //this.Mouse.Status = Point.PointStatus.Mouse;
+            this.Mouse.Position.Status = Point.PointStatus.Mouse;
 
             //place the Cheese on the Grid
             PlaceCheese();
@@ -172,6 +171,9 @@ namespace CheeseFinder
                 }
                 Console.WriteLine();
             }
+            Console.WriteLine("Your remaining energy: {0}", this.Mouse.Energy);
+            Console.WriteLine("Amount of Cheese found: {0}", this.CheeseCount);
+            Console.WriteLine();
         }
 
         /// <summary>
@@ -180,8 +182,6 @@ namespace CheeseFinder
         /// <returns>valid user key press</returns>
         public ConsoleKey GetUserMove()
         {
-            //instructions on what keys to press
-            Console.WriteLine("Press an arrow key to move Mouse");
             //keeps while loop going until user input is valid
             bool validInput = false;
             //continue to check user input until a valid input is received
@@ -229,11 +229,11 @@ namespace CheeseFinder
                 case ConsoleKey.LeftArrow:
                     return --currentMouseX >= 0;
                 case ConsoleKey.RightArrow:
-                    return ++currentMouseX <= this.Grid.GetLength(0);
+                    return ++currentMouseX < this.Grid.GetLength(0);
                 case ConsoleKey.UpArrow:
                     return --currentMouseY >= 0;
                 case ConsoleKey.DownArrow:
-                    return ++currentMouseY <= this.Grid.GetLength(1);
+                    return ++currentMouseY < this.Grid.GetLength(1);
                 default:
                     return false;
             }
@@ -281,7 +281,6 @@ namespace CheeseFinder
                 {
                     AddCat();
                 }
-    //***NOT SURE IF THIS CODE WILL STILL BE NECESSARY***
                 //clearing the old status from Mouse to Empty
                 this.Mouse.Position.Status = Point.PointStatus.Empty;
                 //move Mouse to new position
@@ -291,6 +290,18 @@ namespace CheeseFinder
                 //increase Mouse energy by 10 for finding Cheese
                 Mouse.Energy += 10;
                 return true;
+            }
+            else if (mouseAfterMove.Status == Point.PointStatus.Cat || mouseAfterMove.Status == Point.PointStatus.CatAndCheese)
+            {
+                //clearing the old status from Mouse to Empty
+                this.Mouse.Position.Status = Point.PointStatus.Empty;
+                //move Mouse to new position
+                this.Mouse.Position = mouseAfterMove;
+                //change the new position from status Cheese to Mouse
+                this.Mouse.Position.Status = Point.PointStatus.Cat;
+
+                this.Mouse.HasBeenPouncedOn = true;
+                return false;
             }
             else
             {
@@ -349,30 +360,139 @@ namespace CheeseFinder
             cat.Position.Status = Point.PointStatus.Cat;
         }
 
+        /// <summary>
+        /// Handles the logic for chasing the Mouse
+        /// </summary>
+        /// <param name="cat">Cat object</param>
+        public void MoveCat(Cat cat)
+        {
+            //80% chance Cat will move
+            if (8 >= this.RNG.Next(11))
+            {
+                int XpositionDif = this.Mouse.Position.X - cat.Position.X;
+                int YpositionDif = this.Mouse.Position.Y - cat.Position.Y;
 
+                bool tryLeft = XpositionDif < 0;
+                bool tryRight = XpositionDif > 0;
+                bool tryUp = YpositionDif < 0;
+                bool tryDown = YpositionDif > 0;
+
+                Point targetPosition = cat.Position;
+
+                bool validMove = false;
+
+                while (!validMove && (tryLeft || tryRight || tryUp || tryDown))
+                {
+                    int targetX = cat.Position.X;
+                    int targetY = cat.Position.Y;
+
+                    if (tryRight)
+                    {
+                        targetPosition = Grid[++targetX, targetY];
+                        tryRight = false;
+                    }
+                    else if (tryLeft)
+                    {
+                        targetPosition = Grid[--targetX, targetY];
+                        tryLeft = false;
+                    }
+                    else if (tryDown)
+                    {
+                        targetPosition = Grid[targetX, ++targetY];
+                        tryDown = false;
+                    }
+                    else if (tryUp)
+                    {
+                        targetPosition = Grid[targetX, --targetY];
+                        tryUp = false;
+                    }
+                    validMove = IsValidCatMove(targetPosition);
+                }
+                if (cat.Position.Status == Point.PointStatus.CatAndCheese)
+                {
+                    cat.Position.Status = Point.PointStatus.Cheese;
+                }
+                else
+                {
+                    cat.Position.Status = Point.PointStatus.Empty;
+                }
+                //
+                if (targetPosition.Status == Point.PointStatus.Mouse)
+                {
+                    this.Mouse.HasBeenPouncedOn = true;
+                    targetPosition.Status = Point.PointStatus.Cat;
+                }
+                else if (targetPosition.Status == Point.PointStatus.Cheese)
+                {
+                    targetPosition.Status = Point.PointStatus.CatAndCheese;
+                }
+                else
+                {
+                    targetPosition.Status = Point.PointStatus.Cat;
+                }
+                cat.Position = targetPosition;
+            }
+        }
+
+        /// <summary>
+        /// Handles the logic for moving the Cat
+        /// </summary>
+        /// <param name="targetLocation">cell to move Cat to</param>
+        /// <returns>true is cell is valid</returns>
+        private bool IsValidCatMove(Point targetLocation)
+        {
+            //ensure that Cat does move to a spot already occupied by a Cat or CatandCheese
+            return (targetLocation.Status == Point.PointStatus.Empty || targetLocation.Status == Point.PointStatus.Mouse || targetLocation.Status == Point.PointStatus.Cheese);
+        }
 
         public void PlayGame()
         {
-            //cheeseFound is end condition
-            bool cheeseFound = false;
-            //play the game while the Cheese has not been found
-            while (!cheeseFound)
+            while (this.Mouse.Energy > 0)
             {
                 //draw the Grid
                 this.DrawGrid();
                 //get valid user input, if so move the Mouse
-                //check if MoveMouse is true (if so, Cheese was "found")
-                if (this.MoveMouse(this.GetUserMove()))
+                this.MoveMouse(this.GetUserMove());
+                foreach (Cat cat in this.CatList)
                 {
-                    //if cheese found, redraw Grid one last time then exit game loop
-                    this.DrawGrid();
-                    cheeseFound = true;
+                    this.MoveCat(cat);
                 }
-                //increase round counter for each play of game when Cheese not found
                 this.Round++;
+                if (this.Mouse.HasBeenPouncedOn == true)
+                {
+                    this.Mouse.Energy = 0;
+                }
             }
-            Console.WriteLine("You Won");
-            Console.WriteLine("It took you {0} rounds", this.Round);
+            this.DrawGrid();
+            Console.WriteLine("Game Over");
+            Console.WriteLine("Number of Rounds: {0}", this.Round);
+            this.PlayAgain();
+        }
+
+        public void PlayAgain()
+        {
+            Console.WriteLine();
+            Console.WriteLine("Do you want to play again? Y or N");
+            if (Console.ReadLine().ToUpper() == "Y")
+            {
+                this.Mouse.HasBeenPouncedOn = false;
+                this.Mouse.Energy = 50;
+                this.CheeseCount = 0;
+                this.Round = 0;
+
+                this.Mouse.Position.Status = Point.PointStatus.Empty;
+                this.Cheese.Status = Point.PointStatus.Empty;
+                foreach (Cat cat in this.CatList)
+                {
+                    cat.Position.Status = Point.PointStatus.Empty;
+                }
+
+                this.Mouse.Position = this.Grid[this.RNG.Next(10), this.RNG.Next(10)];
+                this.Mouse.Position.Status = Point.PointStatus.Mouse;
+                this.PlaceCheese();
+                CatList.Clear();
+                this.PlayGame();
+            }
         }
     }
 }
