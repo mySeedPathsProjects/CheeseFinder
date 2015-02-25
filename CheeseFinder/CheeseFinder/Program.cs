@@ -66,6 +66,7 @@ namespace CheeseFinder
         public Mouse()
         {
             this.Energy = 50;
+            this.HasBeenPouncedOn = false;
         }
     }
 
@@ -96,9 +97,10 @@ namespace CheeseFinder
         public Point Cheese { get; set; }
         //holds how many cheeses the mouse has consumed
         public int CheeseCount { get; set; }
-  //public int Round { get; set; }
+        //keeps track of game Rounds
+        public int Round { get; set; }
         //Holds all Cats
-        public List<Cat> Cat { get; set; }
+        public List<Cat> CatList { get; set; }
 
         Random RNG = new Random();
 
@@ -128,7 +130,7 @@ namespace CheeseFinder
             PlaceCheese();
 
             //initialize the Cats List
-            Cat = new List<Cat>();
+            CatList = new List<Cat>();
         }
 
         /// <summary>
@@ -286,6 +288,8 @@ namespace CheeseFinder
                 this.Mouse.Position = mouseAfterMove;
                 //change the new position from status Cheese to Mouse
                 this.Mouse.Position.Status = Point.PointStatus.Mouse;
+                //increase Mouse energy by 10 for finding Cheese
+                Mouse.Energy += 10;
                 return true;
             }
             else
@@ -295,10 +299,10 @@ namespace CheeseFinder
                 this.Mouse.Position.Status = Point.PointStatus.Empty;
                 this.Mouse.Position = mouseAfterMove;
                 this.Mouse.Position.Status = Point.PointStatus.Mouse;
+                //decrease Mouse's energy by 1 for every move
+                Mouse.Energy--;
                 return false;
             }
-            //decrease Mouse's energy by 1 for every move
-            Mouse.Energy--;
         }
 
         /// <summary>
@@ -311,8 +315,9 @@ namespace CheeseFinder
             //make sure the cell is Empty, if not choose another Point
             while (this.Cheese.Status != Point.PointStatus.Empty)
             {
-                this.Cheese = new Point(this.RNG.Next(11), this.RNG.Next(11));
+                this.Cheese = this.Grid[this.RNG.Next(10), this.RNG.Next(10)];
             }
+            //if the cell is Empty then change its status to Cheese
             this.Cheese.Status = Point.PointStatus.Cheese;
         }
 
@@ -321,8 +326,30 @@ namespace CheeseFinder
         /// </summary>
         public void AddCat()
         {
-
+            //Create a new Cat object, place it on Grid, and add it to the List of Cats
+            Cat newCat = new Cat();
+            PlaceCat(newCat);
+            this.CatList.Add(newCat);
         }
+
+        /// <summary>
+        /// Handles logic for placing a Cat
+        /// </summary>
+        /// <param name="cat">Cat object</param>
+        public void PlaceCat(Cat cat)
+        {
+            //choose a random Point to place the newCat on the Grid
+            cat.Position = this.Grid[this.RNG.Next(10), this.RNG.Next(10)];
+            //make sure the cell is Empty, if not choose another Point
+            while (cat.Position.Status != Point.PointStatus.Empty)
+            {
+                cat.Position = this.Grid[this.RNG.Next(10), this.RNG.Next(10)];
+            }
+            //if the cell is Empty then change its status to Cat
+            cat.Position.Status = Point.PointStatus.Cat;
+        }
+
+
 
         public void PlayGame()
         {
