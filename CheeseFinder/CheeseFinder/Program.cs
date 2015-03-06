@@ -369,16 +369,19 @@ namespace CheeseFinder
             //80% chance Cat will move
             if (8 >= this.RNG.Next(11))
             {
+                //if Cat moves get the diffence between its position and the Mouse's
                 int XpositionDif = this.Mouse.Position.X - cat.Position.X;
                 int YpositionDif = this.Mouse.Position.Y - cat.Position.Y;
 
+                //check to see their spacial relationship
                 bool tryLeft = XpositionDif < 0;
                 bool tryRight = XpositionDif > 0;
                 bool tryUp = YpositionDif < 0;
                 bool tryDown = YpositionDif > 0;
 
+                //the target position of the Cat's move
                 Point targetPosition = cat.Position;
-
+                //bool variable to remaining in while loop to check if the Cat's move is valid
                 bool validMove = false;
 
                 while (!validMove && (tryLeft || tryRight || tryUp || tryDown))
@@ -386,6 +389,7 @@ namespace CheeseFinder
                     int targetX = cat.Position.X;
                     int targetY = cat.Position.Y;
 
+                    //decide on which move for the Cat to make
                     if (tryRight)
                     {
                         targetPosition = Grid[++targetX, targetY];
@@ -406,8 +410,10 @@ namespace CheeseFinder
                         targetPosition = Grid[targetX, --targetY];
                         tryUp = false;
                     }
+                    //verify if the move is valid (determined by IsValidCatMove)
                     validMove = IsValidCatMove(targetPosition);
                 }
+                //once a valid move is found, change Cat's current position Status
                 if (cat.Position.Status == Point.PointStatus.CatAndCheese)
                 {
                     cat.Position.Status = Point.PointStatus.Cheese;
@@ -416,7 +422,7 @@ namespace CheeseFinder
                 {
                     cat.Position.Status = Point.PointStatus.Empty;
                 }
-                //
+                //change Cat's target position to a new Status depending on what's in that spot
                 if (targetPosition.Status == Point.PointStatus.Mouse)
                 {
                     this.Mouse.HasBeenPouncedOn = true;
@@ -430,6 +436,7 @@ namespace CheeseFinder
                 {
                     targetPosition.Status = Point.PointStatus.Cat;
                 }
+                //move the Cat
                 cat.Position = targetPosition;
             }
         }
@@ -445,52 +452,67 @@ namespace CheeseFinder
             return (targetLocation.Status == Point.PointStatus.Empty || targetLocation.Status == Point.PointStatus.Mouse || targetLocation.Status == Point.PointStatus.Cheese);
         }
 
+        /// <summary>
+        /// Handles the logic for playing the game
+        /// </summary>
         public void PlayGame()
         {
+            //play game while the Mouse has Energy
             while (this.Mouse.Energy > 0)
             {
                 //draw the Grid
                 this.DrawGrid();
                 //get valid user input, if so move the Mouse
                 this.MoveMouse(this.GetUserMove());
+                //move each Cat in the CatList
                 foreach (Cat cat in this.CatList)
                 {
                     this.MoveCat(cat);
                 }
+                //increase Round count each play
                 this.Round++;
-                if (this.Mouse.HasBeenPouncedOn == true)
+                //if the Cat finds the Mouse it's Energy goes to 0 (Mouse dies)
+                if (this.Mouse.HasBeenPouncedOn)
                 {
                     this.Mouse.Energy = 0;
                 }
             }
+            //when game ends redraw the Grid to show results
             this.DrawGrid();
             Console.WriteLine("Game Over");
             Console.WriteLine("Number of Rounds: {0}", this.Round);
+            //ask player if they want to play again
             this.PlayAgain();
         }
 
+        /// <summary>
+        /// Handles the logic for allowing user to play again or not
+        /// </summary>
         public void PlayAgain()
         {
             Console.WriteLine();
             Console.WriteLine("Do you want to play again? Y or N");
+            //if user chooses to play again
             if (Console.ReadLine().ToUpper() == "Y")
             {
+                //reset all values to their defaults
                 this.Mouse.HasBeenPouncedOn = false;
                 this.Mouse.Energy = 50;
                 this.CheeseCount = 0;
                 this.Round = 0;
-
+                //delete current Mouse, Cheese, and Cats
                 this.Mouse.Position.Status = Point.PointStatus.Empty;
                 this.Cheese.Status = Point.PointStatus.Empty;
                 foreach (Cat cat in this.CatList)
                 {
                     cat.Position.Status = Point.PointStatus.Empty;
                 }
-
+                //reset the Mouse, Cheese, and CatList
                 this.Mouse.Position = this.Grid[this.RNG.Next(10), this.RNG.Next(10)];
                 this.Mouse.Position.Status = Point.PointStatus.Mouse;
                 this.PlaceCheese();
                 CatList.Clear();
+                //restart Game
                 this.PlayGame();
             }
         }
