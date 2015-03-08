@@ -10,9 +10,9 @@ namespace CheeseFinder
     {
         static void Main(string[] args)
         {
+            Console.WindowWidth = 120;
             CheeseNibbler CheeseGame = new CheeseNibbler();
             CheeseGame.PlayGame();
-            
         }
     }
 
@@ -149,25 +149,28 @@ namespace CheeseFinder
                     {
                         //found a Cat space
                         case Point.PointStatus.Cat:
-                            Console.Write("[X]");
-                            break;
                         //found a Cat/Cheese space (they can occupy the same cell)
                         case Point.PointStatus.CatAndCheese:
-                            Console.Write("[X]");
+                            Console.ForegroundColor = ConsoleColor.Red;
+                            Console.Write("[  =^..^=  ]");
                             break;
                         //found a Cheese space
                         case Point.PointStatus.Cheese:
-                            Console.Write("[C]");
+                            Console.ForegroundColor = ConsoleColor.Yellow;
+                            Console.Write("[   C H Z  ]");
                             break;
                         //found a Mouse space
                         case Point.PointStatus.Mouse:
-                            Console.Write("[M]");
+                            Console.ForegroundColor = ConsoleColor.Cyan;
+                            Console.Write("[ ~~(__^·> ]");
                             break;
                         //for anything else (should be an Empty space)
                         default:
-                            Console.Write("[ ]");
+                            Console.Write("[          ]");
+                            Console.ForegroundColor = ConsoleColor.Gray;
                             break;
                     }
+                    Console.ForegroundColor = ConsoleColor.Gray;
                 }
                 Console.WriteLine();
             }
